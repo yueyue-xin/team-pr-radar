@@ -1,0 +1,29 @@
+name: PR Radar Brief
+
+on:
+  schedule:
+    # GitHub cron uses UTC. Adjust these for your team's timezones.
+    - cron: "30 16 * * 1-5"
+    - cron: "30 23 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  pr-radar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate and send PR brief
+        env:
+          PR_RADAR_GITHUB_TOKEN: ${{ secrets.PR_RADAR_GITHUB_TOKEN }}
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm run brief

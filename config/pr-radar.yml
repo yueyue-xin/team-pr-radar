@@ -1,0 +1,36 @@
+github:
+  host: github-vcf.devops.broadcom.net
+  org: vcf
+  repos:
+    - automation
+
+filters:
+  labels:
+    include: []
+    exclude: []
+  reviewers:
+    include:
+      - vksm-ui-reviewers
+    exclude: []
+  paths:
+    include:
+      - vksm/km-ui/**
+    exclude: []
+
+rules:
+  ignore_draft: true
+  stale_after_hours: 24
+  urgent_after_hours: 48
+  max_open_prs_per_repo: 100
+  max_prs_in_brief: 8
+  max_prs_to_ai_summarize: 5
+  include_approved_waiting_merge: true
+
+ai:
+  enabled: true
+  # Used only when OPENAI_API_KEY is configured.
+  model: gpt-4o-mini
+
+chat:
+  title: Team PR Review Brief
+  timezone: America/Los_Angeles

@@ -1,0 +1,42 @@
+{
+  "name": "team-pr-radar",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI-assisted PR review brief sender for Google Chat.",
+  "bin": {
+    "team-pr-radar": "./dist/scripts/cli.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "start": "tsx scripts/cli.ts",
+    "brief": "tsx scripts/pr-radar.ts",
+    "build": "tsc",
+    "test:chat": "tsx scripts/test-chat.ts",
+    "test:message": "PR_RADAR_DRY_RUN=true tsx scripts/pr-radar.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "github",
+    "pull-request",
+    "review",
+    "google-chat",
+    "pr-radar",
+    "code-review",
+    "team"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  }
+}
