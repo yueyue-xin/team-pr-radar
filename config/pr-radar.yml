@@ -1,20 +1,13 @@
 github:
-  host: github-vcf.devops.broadcom.net
-  org: vcf
+  host: github.example.com
+  org: acme
   repos:
-    - automation
+    - web-app
 
 filters:
-  labels:
-    include: []
-    exclude: []
   reviewers:
     include:
-      - vksm-ui-reviewers
-    exclude: []
-  paths:
-    include:
-      - vksm/km-ui/**
+      - ui-reviewers
     exclude: []
 
 rules:
@@ -28,8 +21,8 @@ rules:
 
 ai:
   enabled: true
-  # Used only when OPENAI_API_KEY is configured.
-  model: gpt-4o-mini
+  provider: auto
+  model: auto
 
 chat:
   title: Team PR Review Brief

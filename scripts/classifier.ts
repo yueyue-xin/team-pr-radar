@@ -11,55 +11,36 @@ export function classifyPRs(prs: NormalizedPR[], config: RadarConfig): Classifie
 }
 
 function matchesFilters(pr: NormalizedPR, config: RadarConfig): boolean {
-  const includeLabels = config.filters.labels.include.map((x) => x.toLowerCase());
-  const excludeLabels = config.filters.labels.exclude.map((x) => x.toLowerCase());
-  const prLabels = pr.labels.map((x) => x.toLowerCase());
-
-  if (includeLabels.length > 0 && !includeLabels.some((label) => prLabels.includes(label))) {
+  if (config.runtime?.author && pr.author.toLowerCase() !== config.runtime.author.toLowerCase()) {
     return false;
   }
 
-  if (excludeLabels.length > 0 && excludeLabels.some((label) => prLabels.includes(label))) {
+  if (config.runtime?.authoredOnly) {
+    return true;
+  }
+
+  const includeReviewers = config.filters.reviewers.include.map(normalizeReviewerFilterValue);
+  const excludeReviewers = config.filters.reviewers.exclude.map(normalizeReviewerFilterValue);
+  const prReviewers = new Set(pr.requestedReviewers.map((x) => x.toLowerCase()));
+
+  if (includeReviewers.length > 0 && !includeReviewers.some((r) => prReviewers.has(r))) {
     return false;
   }
 
-  const includeReviewers = config.filters.reviewers.include.map((x) => x.toLowerCase());
-  const excludeReviewers = config.filters.reviewers.exclude.map((x) => x.toLowerCase());
-  const prReviewers = pr.requestedReviewers.map((x) => x.toLowerCase());
-
-  if (includeReviewers.length > 0 && !includeReviewers.some((r) => prReviewers.includes(r))) {
-    return false;
-  }
-
-  if (excludeReviewers.length > 0 && excludeReviewers.some((r) => prReviewers.includes(r))) {
-    return false;
-  }
-
-  const includePaths = config.filters.paths.include.map((x) => x.toLowerCase());
-  const excludePaths = config.filters.paths.exclude.map((x) => x.toLowerCase());
-  const prFiles = pr.changedFiles.map((x) => x.toLowerCase());
-
-  if (includePaths.length > 0 && !includePaths.some((pat) => prFiles.some((f) => matchPath(f, pat)))) {
-    return false;
-  }
-
-  if (excludePaths.length > 0 && excludePaths.some((pat) => prFiles.some((f) => matchPath(f, pat)))) {
+  if (excludeReviewers.length > 0 && excludeReviewers.some((r) => prReviewers.has(r))) {
     return false;
   }
 
   return true;
 }
 
-function matchPath(filePath: string, pattern: string): boolean {
-  if (pattern.endsWith("/**")) {
-    const prefix = pattern.slice(0, -3);
-    return filePath.startsWith(prefix);
-  }
-  if (pattern.endsWith("*")) {
-    const prefix = pattern.slice(0, -1);
-    return filePath.startsWith(prefix);
-  }
-  return filePath === pattern;
+function normalizeReviewerFilterValue(value: string): string {
+  const raw = value.trim();
+  const lower = raw.toLowerCase();
+  if (lower.startsWith("user:")) return lower.slice("user:".length);
+  if (lower.startsWith("team:")) return lower.slice("team:".length).split("/").at(-1) || lower;
+  if (lower.startsWith("@")) return lower.slice(1);
+  return lower.split("/").at(-1) || lower;
 }
 
 function classifyPR(pr: NormalizedPR, config: RadarConfig, now: Date): ClassifiedPR {

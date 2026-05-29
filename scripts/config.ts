@@ -1,14 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import yaml from "js-yaml";
-import type { RadarConfig } from "./types.js";
+import type { AIProvider, RadarConfig } from "./types.js";
 
 type RawConfig = Partial<RadarConfig> & {
   github?: Partial<RadarConfig["github"]>;
   filters?: Partial<RadarConfig["filters"]> & {
-    labels?: Partial<RadarConfig["filters"]["labels"]>;
     reviewers?: Partial<RadarConfig["filters"]["reviewers"]>;
-    paths?: Partial<RadarConfig["filters"]["paths"]>;
   };
   rules?: Partial<RadarConfig["rules"]>;
   ai?: Partial<RadarConfig["ai"]>;
@@ -27,6 +25,17 @@ export async function loadConfig(configPath?: string): Promise<RadarConfig> {
     throw new Error("config.github.repos must contain at least one repo");
   }
 
+  const aiProvider = (config.ai?.provider as AIProvider) || "auto";
+  if (!["auto", "openai", "anthropic", "custom", "command", "none"].includes(aiProvider)) {
+    throw new Error(`config.ai.provider must be one of: auto, openai, anthropic, custom, command, none`);
+  }
+
+  // Resolve agent_file relative to config file directory
+  const agentFile = config.ai?.agent_file || "";
+  const resolvedAgentFile = agentFile
+    ? path.resolve(path.dirname(resolvedPath), agentFile)
+    : "";
+
   return {
     github: {
       host: config.github?.host || "github.com",
@@ -34,20 +43,10 @@ export async function loadConfig(configPath?: string): Promise<RadarConfig> {
       repos: config.github?.repos || [],
     },
     filters: {
-      labels: {
-        include: [],
-        exclude: [],
-        ...(config.filters?.labels || {}),
-      },
       reviewers: {
         include: [],
         exclude: [],
         ...(config.filters?.reviewers || {}),
-      },
-      paths: {
-        include: [],
-        exclude: [],
-        ...(config.filters?.paths || {}),
       },
     },
     rules: {
@@ -62,8 +61,11 @@ export async function loadConfig(configPath?: string): Promise<RadarConfig> {
     },
     ai: {
       enabled: true,
-      model: "gpt-4o-mini",
-      ...(config.ai || {}),
+      provider: aiProvider,
+      model: config.ai?.model || "",
+      base_url: config.ai?.base_url || "",
+      command: config.ai?.command || "",
+      agent_file: resolvedAgentFile,
     },
     chat: {
       title: "Team PR Review Brief",

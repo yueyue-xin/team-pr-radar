@@ -7,22 +7,21 @@ export type PullRequestStatus =
   | "author_action_needed"
   | "approved_waiting_merge";
 
+export type AIProvider = "auto" | "openai" | "anthropic" | "custom" | "command" | "none";
+
 export interface RadarConfig {
+  /** Runtime-only options set by CLI flags; not part of pr-radar.yml. */
+  runtime?: {
+    author?: string;
+    authoredOnly?: boolean;
+  };
   github: {
     host: string;
     org: string;
     repos: string[];
   };
   filters: {
-    labels: {
-      include: string[];
-      exclude: string[];
-    };
     reviewers: {
-      include: string[];
-      exclude: string[];
-    };
-    paths: {
       include: string[];
       exclude: string[];
     };
@@ -38,7 +37,11 @@ export interface RadarConfig {
   };
   ai: {
     enabled: boolean;
+    provider: AIProvider;
     model: string;
+    base_url: string;
+    command: string;
+    agent_file: string;
   };
   chat: {
     title: string;
@@ -75,6 +78,26 @@ export interface NormalizedPR {
   lastCommitMessage: string;
   unresolvedThreadCount: number;
   ciState: string;
+  /** Users who commented / reviewed / were requested on this PR */
+  participants: string[];
+}
+
+export interface FollowUpPR extends NormalizedPR {
+  followUpReasons: string[];
+  myLastReviewAt?: string;
+  myLastReviewState?: string;
+  myLastCommentAt?: string;
+  myLastActivityAt?: string;
+  hasNewCommitsAfterMyActivity: boolean;
+}
+
+export interface AIInsight {
+  summary: string;
+  nextAction: string;
+  owner: "author" | "reviewer" | "maintainer" | "ci" | "unknown";
+  risk: "low" | "medium" | "high" | "unknown";
+  confidence: number;
+  evidence: string[];
 }
 
 export interface ClassifiedPR extends NormalizedPR {
@@ -90,4 +113,5 @@ export interface ClassifiedPR extends NormalizedPR {
   reason: string;
   priorityScore: number;
   aiNote: string;
+  aiInsight?: AIInsight;
 }

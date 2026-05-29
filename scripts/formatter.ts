@@ -1,5 +1,5 @@
 import { formatDuration, nowInTimezone } from "./time.js";
-import type { ClassifiedPR, PullRequestStatus, RadarConfig } from "./types.js";
+import type { ClassifiedPR, FollowUpPR, PullRequestStatus, RadarConfig } from "./types.js";
 
 const STATUS_BADGE: Record<PullRequestStatus, string> = {
   ready_for_review: "🟢 Ready for Review",
@@ -85,8 +85,14 @@ export function formatBrief(classified: ClassifiedPR[], config: RadarConfig): st
       lines.push(`*Labels*  ${pr.labels.join(", ")}`);
     }
 
-    // AI note
-    if (pr.aiNote) {
+    // AI insight
+    if (pr.aiInsight) {
+      const risk = formatRisk(pr.aiInsight.risk);
+      const owner = formatOwner(pr.aiInsight.owner);
+      lines.push(`*AI*  🤖 ${risk} · Owner: ${owner} · Confidence: ${Math.round(pr.aiInsight.confidence * 100)}%`);
+      if (pr.aiInsight.summary) lines.push(`*Summary*  ${pr.aiInsight.summary}`);
+      if (pr.aiInsight.nextAction) lines.push(`*Next*  ${pr.aiInsight.nextAction}`);
+    } else if (pr.aiNote) {
       lines.push(`*Note*  🤖 ${pr.aiNote}`);
     }
 
@@ -107,6 +113,73 @@ export function formatBrief(classified: ClassifiedPR[], config: RadarConfig): st
   }
 
   return lines.join("\n");
+}
+
+export function formatFollowUpBrief(prs: FollowUpPR[], config: RadarConfig): string {
+  const maxItems = config.rules.max_prs_in_brief;
+  const top = prs.slice(0, maxItems);
+  const timestamp = nowInTimezone(config.chat.timezone);
+  const lines: string[] = [];
+
+  lines.push(`🔁 *${config.chat.title}* (${timestamp})`);
+  lines.push("");
+
+  if (prs.length === 0) {
+    lines.push("🎉 No review follow-ups need attention right now.");
+    return lines.join("\n");
+  }
+
+  const newCommitCount = prs.filter((pr) => pr.hasNewCommitsAfterMyActivity).length;
+  lines.push(`> *${prs.length}* follow-up PR(s) · 🔁 ${newCommitCount} with new commits after your activity`);
+  lines.push("");
+
+  top.forEach((pr, index) => {
+    lines.push(`*[🔁 Follow-up]* *${pr.repo} #${pr.number}*`);
+    lines.push(`*Title*   ${pr.title}`);
+    lines.push(`*Author*  ${pr.author}`);
+    lines.push(`*Reason*  ${pr.followUpReasons.join(" · ")}`);
+    if (pr.myLastReviewAt) {
+      lines.push(`*Your last review*  ${pr.myLastReviewState || "UNKNOWN"} at ${pr.myLastReviewAt}`);
+    }
+    if (pr.myLastCommentAt) {
+      lines.push(`*Your last comment*  ${pr.myLastCommentAt}`);
+    }
+    if (pr.lastCommitAt) {
+      lines.push(`*Latest commit*  ${pr.lastCommitAt}${pr.lastCommitMessage ? ` — ${pr.lastCommitMessage}` : ""}`);
+    }
+    if (pr.labels.length > 0) {
+      lines.push(`*Labels*  ${pr.labels.join(", ")}`);
+    }
+    lines.push(`🔗 ${pr.url}`);
+
+    if (index < top.length - 1) {
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    }
+  });
+
+  if (prs.length > top.length) {
+    lines.push("");
+    lines.push(`> *+${prs.length - top.length} more PR(s)*`);
+  }
+
+  return lines.join("\n");
+}
+
+function formatRisk(risk: string): string {
+  if (risk === "high") return "🔴 High risk";
+  if (risk === "medium") return "🟡 Medium risk";
+  if (risk === "low") return "🟢 Low risk";
+  return "⚪ Unknown risk";
+}
+
+function formatOwner(owner: string): string {
+  if (owner === "author") return "author";
+  if (owner === "reviewer") return "reviewer";
+  if (owner === "maintainer") return "maintainer";
+  if (owner === "ci") return "CI";
+  return "unknown";
 }
 
 function estimateReviewTime(fileCount: number): string {
